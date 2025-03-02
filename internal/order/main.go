@@ -2,11 +2,21 @@ package main
 
 import (
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/config"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 )
 
+func init() {
+	if err := config.NewViperConfig(); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
+	log.Print(viper.Get("order")) // 从配置文件获取配置
+
 	mux := http.NewServeMux() // http 多路请求复用器
 
 	// 注册路由和处理函数
