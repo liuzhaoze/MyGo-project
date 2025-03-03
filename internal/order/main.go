@@ -1,11 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/liuzhaoze/MyGo-project/common/config"
+	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
+	"github.com/liuzhaoze/MyGo-project/common/server"
+	"github.com/liuzhaoze/MyGo-project/order/ports"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 	"log"
-	"net/http"
 )
 
 func init() {
@@ -15,25 +18,18 @@ func init() {
 }
 
 func main() {
-	log.Print(viper.Get("order")) // 从配置文件获取配置
+	serviceName := viper.GetString("order.service-name")
 
-	mux := http.NewServeMux() // http 多路请求复用器
-
-	// 注册路由和处理函数
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s", r.Method, r.URL)
-		if _, err := fmt.Fprintln(w, "<h1>Welcome to home page</h1>"); err != nil {
-			log.Fatal(err)
-		}
-	})
-	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		if _, err := fmt.Fprintln(w, "pong"); err != nil {
-			log.Fatal(err)
-		}
+	go server.RunGRPCServer(serviceName, func(s *grpc.Server) {
+		orderpb.RegisterOrderServiceServer(s, ports.NewGRPCServer())
 	})
 
-	log.Println("Listening on :8082")
-	if err := http.ListenAndServe(":8082", mux); err != nil {
-		log.Fatal(err)
-	}
+	print("HTTP server is running")
+	server.RunHTTPServer(serviceName, func(router *gin.Engine) {
+		ports.RegisterHandlersWithOptions(router, HTTPServer{}, ports.GinServerOptions{
+			BaseURL:      "/api",
+			Middlewares:  nil,
+			ErrorHandler: nil,
+		})
+	})
 }

@@ -1,4 +1,11 @@
 order:
   service-name: order
   service-protocol: http
-  address: 127.0.0.1:8282
+  http-addr: 127.0.0.1:8282
+  grpc-addr: 127.0.0.1:8182
+
+stock:
+  service-name: stock
+  service-protocol: grpc
+  http-addr: 127.0.0.1:8283
+  grpc-addr: 127.0.0.1:8183
