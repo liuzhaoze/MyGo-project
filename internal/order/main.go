@@ -4,10 +4,12 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/liuzhaoze/MyGo-project/common/config"
+	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/common/server"
 	"github.com/liuzhaoze/MyGo-project/order/ports"
 	"github.com/liuzhaoze/MyGo-project/order/service"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"log"
@@ -27,6 +29,14 @@ func main() {
 
 	application, cleanup := service.NewApplication(ctx)
 	defer cleanup()
+
+	deregisterFunc, err := discovery.RegisterToConsul(ctx, serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer func() {
+		_ = deregisterFunc()
+	}()
 
 	go server.RunGRPCServer(serviceName, func(s *grpc.Server) {
 		orderpb.RegisterOrderServiceServer(s, ports.NewGRPCServer(application))

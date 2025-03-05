@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/common/config"
+	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
 	"github.com/liuzhaoze/MyGo-project/common/server"
 	"github.com/liuzhaoze/MyGo-project/stock/ports"
@@ -25,6 +26,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	application := service.NewApplication(ctx)
+
+	deregisterFunc, err := discovery.RegisterToConsul(ctx, serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer func() {
+		_ = deregisterFunc()
+	}()
+
 	switch serverType {
 	case "grpc":
 		server.RunGRPCServer(serviceName, func(s *grpc.Server) {
