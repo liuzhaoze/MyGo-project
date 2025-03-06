@@ -5,6 +5,7 @@ import (
 	"github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/common/server"
 	"github.com/liuzhaoze/MyGo-project/stock/ports"
 	"github.com/liuzhaoze/MyGo-project/stock/service"
@@ -14,6 +15,7 @@ import (
 )
 
 func init() {
+	logging.Init()
 	if err := config.NewViperConfig(); err != nil {
 		logrus.Fatal(err)
 	}

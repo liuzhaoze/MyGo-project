@@ -6,6 +6,7 @@ import (
 	"github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/common/server"
 	"github.com/liuzhaoze/MyGo-project/order/ports"
 	"github.com/liuzhaoze/MyGo-project/order/service"
@@ -16,13 +17,13 @@ import (
 )
 
 func init() {
+	logging.Init()
 	if err := config.NewViperConfig(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func main() {
-	logrus.Fatal(viper.GetString("stripe-key"))
 	serviceName := viper.GetString("order.service-name")
 
 	ctx, cancel := context.WithCancel(context.Background())
