@@ -5,6 +5,7 @@ import (
 	"github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/common/server"
+	"github.com/liuzhaoze/MyGo-project/payment/infrastructure/consumer"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -32,6 +33,8 @@ func main() {
 		_ = ch.Close()
 		_ = closeCh()
 	}()
+
+	go consumer.NewConsumer().Listen(ch)
 
 	switch serverType {
 	case "http":
