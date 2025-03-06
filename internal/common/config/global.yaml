@@ -9,3 +9,5 @@ stock:
   service-protocol: grpc
   http-addr: 127.0.0.1:8283
   grpc-addr: 127.0.0.1:8183
+
+stripe-key: "${STRIPE_KEY}" # 值仅为提示作用，viper 会直接寻找 STRIPE_KEY 环境变量

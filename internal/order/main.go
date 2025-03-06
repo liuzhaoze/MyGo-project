@@ -22,6 +22,7 @@ func init() {
 }
 
 func main() {
+	logrus.Fatal(viper.GetString("stripe-key"))
 	serviceName := viper.GetString("order.service-name")
 
 	ctx, cancel := context.WithCancel(context.Background())
