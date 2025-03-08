@@ -10,6 +10,7 @@ import (
 	"github.com/liuzhaoze/MyGo-project/payment/domain"
 	"github.com/liuzhaoze/MyGo-project/payment/infrastructure/processor"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 func NewApplication(ctx context.Context) (app.Application, func()) {
@@ -19,8 +20,9 @@ func NewApplication(ctx context.Context) (app.Application, func()) {
 	}
 
 	orderGRPC := adapters.NewOrderGRPC(orderClient)
-	memProcessor := processor.NewInMemProcessor()
-	return newApplication(ctx, orderGRPC, memProcessor), func() {
+	//memProcessor := processor.NewInMemProcessor()
+	stripeProcessor := processor.NewStripeProcessor(viper.GetString("stripe-key"))
+	return newApplication(ctx, orderGRPC, stripeProcessor), func() {
 		_ = closeOrderClient()
 	}
 }

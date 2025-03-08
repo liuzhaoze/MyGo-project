@@ -29,12 +29,23 @@ func NewCheckIfItemsInStockHandler(stockRepo domain.Repository, logger *logrus.E
 	)
 }
 
+var stub = map[string]string{
+	"1": "price_1QzWgnAe8D0pztRYOGHS1igj",
+	"2": "price_1R0J9KAe8D0pztRYHqE5sbPn",
+}
+
 func (h checkIfItemsInStockHandler) Handle(ctx context.Context, q CheckIfItemsInStock) ([]*orderpb.Item, error) {
 	var res []*orderpb.Item
 	for _, item := range q.Items {
+		// TODO: priceID 从 stripe 或数据库获取
+		priceID, ok := stub[item.ID]
+		if !ok {
+			priceID = stub["1"]
+		}
 		res = append(res, &orderpb.Item{
 			ID:       item.ID,
 			Quantity: item.Quantity,
+			PriceID:  priceID,
 		})
 	}
 	return res, nil
