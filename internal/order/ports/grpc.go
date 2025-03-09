@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/order/app"
@@ -45,12 +46,12 @@ func (G GRPCServer) GetOrder(ctx context.Context, request *orderpb.GetOrderReque
 	return o.ToProto(), nil
 }
 
-func (G GRPCServer) UpdateOrder(ctx context.Context, order *orderpb.Order) (_ *emptypb.Empty, err error) {
+func (G GRPCServer) UpdateOrder(ctx context.Context, order *orderpb.Order) (*emptypb.Empty, error) {
 	logrus.Infof("order_grpc || request_in || request=%+v", order)
 	o, err := domain.NewOrder(order.ID, order.CustomerID, order.Status, order.PaymentLink, order.Items)
 	if err != nil {
 		err = status.Error(codes.Internal, err.Error())
-		return
+		return nil, err
 	}
 
 	_, err = G.app.Commands.UpdateOrder.Handle(ctx, command.UpdateOrder{
@@ -59,5 +60,5 @@ func (G GRPCServer) UpdateOrder(ctx context.Context, order *orderpb.Order) (_ *e
 			return order, nil
 		},
 	})
-	return
+	return nil, err
 }

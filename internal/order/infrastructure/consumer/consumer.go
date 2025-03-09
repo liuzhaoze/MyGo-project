@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/liuzhaoze/MyGo-project/common/broker"
 	"github.com/liuzhaoze/MyGo-project/order/app"
 	"github.com/liuzhaoze/MyGo-project/order/app/command"
@@ -38,13 +39,13 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 	forever := make(chan struct{})
 	go func() {
 		for m := range msgs {
-			c.handleMessage(m, q, ch)
+			c.handleMessage(m)
 		}
 	}()
 	<-forever
 }
 
-func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue, ch *amqp.Channel) {
+func (c *Consumer) handleMessage(msg amqp.Delivery) {
 	o := &domain.Order{}
 	if err := json.Unmarshal(msg.Body, o); err != nil {
 		logrus.Infof("error unmarshal msg.body into domain.Order, err=%v", err)

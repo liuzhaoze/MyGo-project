@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
 )

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"

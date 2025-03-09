@@ -2,11 +2,12 @@ package adapters
 
 import (
 	"context"
-	domain "github.com/liuzhaoze/MyGo-project/order/domain/order"
-	"github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
 	"time"
+
+	domain "github.com/liuzhaoze/MyGo-project/order/domain/order"
+	"github.com/sirupsen/logrus"
 )
 
 type MemoryOrderRepository struct {
@@ -78,7 +79,6 @@ func (m *MemoryOrderRepository) Update(ctx context.Context, o *domain.Order, upd
 	}
 	if !isFound {
 		return &domain.NotFoundError{OrderID: o.ID}
-	} else {
-		return nil
 	}
+	return nil
 }

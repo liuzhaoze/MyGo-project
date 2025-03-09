@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/liuzhaoze/MyGo-project/common/broker"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/payment/app"
@@ -35,13 +36,13 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 	forever := make(chan struct{})
 	go func() {
 		for m := range msgs {
-			c.handleMessage(m, q, ch)
+			c.handleMessage(m, q)
 		}
 	}()
 	<-forever
 }
 
-func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue, ch *amqp.Channel) {
+func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
 	logrus.Infof("payment receive a message from %s, msg=%v", q.Name, string(msg.Body))
 
 	o := &orderpb.Order{}

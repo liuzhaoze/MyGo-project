@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+
 	"github.com/liuzhaoze/MyGo-project/common/decorator"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	domain "github.com/liuzhaoze/MyGo-project/stock/domain/stock"

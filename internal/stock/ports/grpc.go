@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
 	"github.com/liuzhaoze/MyGo-project/stock/app"
 	"github.com/liuzhaoze/MyGo-project/stock/app/query"

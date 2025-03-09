@@ -3,8 +3,9 @@ package stock
 import (
 	"context"
 	"fmt"
-	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"strings"
+
+	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 )
 
 type Repository interface {

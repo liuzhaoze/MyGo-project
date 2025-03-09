@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
@@ -19,10 +20,7 @@ func NewStockGRPCClient(ctx context.Context) (client stockpb.StockServiceClient,
 	if grpcAddr == "" {
 		logrus.Warn("no stock grpc service address found")
 	}
-	opts, err := grpcDialOption(grpcAddr)
-	if err != nil {
-		return nil, func() error { return nil }, err
-	}
+	opts := grpcDialOption(grpcAddr)
 	conn, err := grpc.NewClient(grpcAddr, opts...)
 	if err != nil {
 		return nil, func() error { return nil }, err
@@ -38,18 +36,15 @@ func NewOrderGRPCClient(ctx context.Context) (client orderpb.OrderServiceClient,
 	if grpcAddr == "" {
 		logrus.Warn("no order grpc service address found")
 	}
-	opts, err := grpcDialOption(grpcAddr)
-	if err != nil {
-		return nil, func() error { return nil }, err
-	}
+	opts := grpcDialOption(grpcAddr)
 	conn, err := grpc.NewClient(grpcAddr, opts...)
 	if err != nil {
 		return nil, func() error { return nil }, err
 	}
 	return orderpb.NewOrderServiceClient(conn), conn.Close, nil
 }
-func grpcDialOption(addr string) ([]grpc.DialOption, error) {
+func grpcDialOption(_ string) []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}, nil
+	}
 }
