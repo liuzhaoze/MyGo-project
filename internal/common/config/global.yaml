@@ -26,3 +26,4 @@ rabbitmq:
   port: 5672
 
 stripe-key: "${STRIPE_KEY}" # 值仅为提示作用，viper 会直接寻找 STRIPE_KEY 环境变量
+stripe-endpoint-secret: "${STRIPE_ENDPOINT_SECRET}"
