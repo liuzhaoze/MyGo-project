@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/liuzhaoze/MyGo-project/common/broker"
 	"github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/common/server"
+	"github.com/liuzhaoze/MyGo-project/order/infrastructure/consumer"
 	"github.com/liuzhaoze/MyGo-project/order/ports"
 	"github.com/liuzhaoze/MyGo-project/order/service"
 	"github.com/sirupsen/logrus"
@@ -39,6 +41,19 @@ func main() {
 	defer func() {
 		_ = deregisterFunc()
 	}()
+
+	ch, closeCh := broker.Connect(
+		viper.GetString("rabbitmq.user"),
+		viper.GetString("rabbitmq.password"),
+		viper.GetString("rabbitmq.host"),
+		viper.GetString("rabbitmq.port"),
+	)
+	defer func() {
+		_ = ch.Close()
+		_ = closeCh()
+	}()
+
+	go consumer.NewConsumer(application).Listen(ch)
 
 	go server.RunGRPCServer(serviceName, func(s *grpc.Server) {
 		orderpb.RegisterOrderServiceServer(s, ports.NewGRPCServer(application))
