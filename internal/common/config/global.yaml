@@ -1,3 +1,5 @@
+dial-grpc-timeout: 10
+
 order:
   service-name: order
   service-protocol: http
