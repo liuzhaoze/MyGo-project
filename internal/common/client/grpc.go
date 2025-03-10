@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"net"
 	"time"
 
@@ -52,9 +53,11 @@ func NewOrderGRPCClient(ctx context.Context) (client orderpb.OrderServiceClient,
 	}
 	return orderpb.NewOrderServiceClient(conn), conn.Close, nil
 }
+
 func grpcDialOption(_ string) []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	}
 }
 
