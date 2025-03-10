@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/liuzhaoze/MyGo-project/common/tracing"
 
 	"github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
@@ -28,6 +29,13 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	shutdown, err := tracing.InitJaegerProvider(viper.GetString("jaeger.url"), serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer shutdown(ctx)
+
 	application := service.NewApplication(ctx)
 
 	deregisterFunc, err := discovery.RegisterToConsul(ctx, serviceName)
