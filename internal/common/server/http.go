@@ -2,6 +2,8 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/liuzhaoze/MyGo-project/common/middleware"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
@@ -25,6 +27,7 @@ func RunHTTPServerOnAddr(addr string, wrapper func(router *gin.Engine)) {
 }
 
 func setMiddlewares(e *gin.Engine) {
+	e.Use(middleware.StructuredLog(logrus.NewEntry(logrus.StandardLogger())))
 	e.Use(gin.Recovery())
 	e.Use(otelgin.Middleware("default_server"))
 }
