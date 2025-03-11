@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
+	"github.com/liuzhaoze/MyGo-project/order/converter"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
+	client "github.com/liuzhaoze/MyGo-project/common/client/order"
 	"github.com/liuzhaoze/MyGo-project/order/app"
 	"github.com/liuzhaoze/MyGo-project/order/app/command"
 	"github.com/liuzhaoze/MyGo-project/order/app/query"
@@ -20,14 +21,14 @@ func (H HTTPServer) PostCustomerCustomerIDOrders(c *gin.Context, customerID stri
 	ctx, span := tracing.Start(c, "PostCustomerCustomerIDOrders")
 	defer span.End()
 
-	var req orderpb.CreateOrderRequest
+	var req client.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
 	r, err := H.app.Commands.CreateOrder.Handle(ctx, command.CreateOrder{
 		CustomerID: customerID,
-		Items:      req.Items,
+		Items:      converter.NewItemWithQuantityConverter().ClientsToEntities(req.Items),
 	})
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"error": err})
