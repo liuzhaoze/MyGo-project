@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"github.com/liuzhaoze/MyGo-project/common/tracing"
 
 	"github.com/liuzhaoze/MyGo-project/common/decorator"
 	domain "github.com/liuzhaoze/MyGo-project/order/domain/order"
@@ -31,9 +32,12 @@ func NewGetCustomerOrderHandler(orderRepo domain.Repository, logger *logrus.Entr
 }
 
 func (g getCustomerOrderHandler) Handle(ctx context.Context, q GetCustomerOrder) (*domain.Order, error) {
+	_, span := tracing.Start(ctx, "getCustomerOrderHandler.Handle")
 	o, err := g.orderRepo.Get(ctx, q.OrderID, q.CustomerID)
 	if err != nil {
 		return nil, err
 	}
+	span.AddEvent("get_success")
+	span.End()
 	return o, nil
 }

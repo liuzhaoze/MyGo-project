@@ -37,7 +37,7 @@ func (h *PaymentHandler) handleWebhook(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
 	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		logrus.Infof("Error reading request body: %v\n", err)
+		logrus.Infof("error reading request body: %v\n", err)
 		c.JSON(http.StatusServiceUnavailable, err.Error())
 		return
 	}
@@ -46,7 +46,7 @@ func (h *PaymentHandler) handleWebhook(c *gin.Context) {
 		viper.GetString("stripe-endpoint-secret"))
 
 	if err != nil {
-		logrus.Infof("Error verifying webhook signature: %v\n", err)
+		logrus.Infof("error verifying webhook signature: %v\n", err)
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -56,7 +56,7 @@ func (h *PaymentHandler) handleWebhook(c *gin.Context) {
 	case stripe.EventTypeCheckoutSessionCompleted:
 		var session stripe.CheckoutSession
 		if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
-			logrus.Infof("Error unmarshalling event.data.raw into session, err=%v\n", err)
+			logrus.Infof("error unmarshalling event.data.raw into session, err=%v\n", err)
 			c.JSON(http.StatusBadRequest, err.Error())
 			return
 		}
