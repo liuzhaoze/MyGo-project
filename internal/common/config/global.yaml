@@ -31,5 +31,13 @@ rabbitmq:
   port: 5672
   max-retry: 3
 
+mongo:
+  user: root
+  password: password
+  host: 127.0.0.1
+  port: 27017
+  db-name: order
+  coll-name: order
+
 stripe-key: "${STRIPE_KEY}" # 值仅为提示作用，viper 会直接寻找 STRIPE_KEY 环境变量
 stripe-endpoint-secret: "${STRIPE_ENDPOINT_SECRET}"

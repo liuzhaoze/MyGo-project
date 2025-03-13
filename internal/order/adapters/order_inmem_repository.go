@@ -10,12 +10,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type MemoryOrderRepository struct {
+type OrderRepositoryMemory struct {
 	lock  *sync.RWMutex
 	store []*domain.Order
 }
 
-func NewMemoryOrderRepository() *MemoryOrderRepository {
+func NewMemoryOrderRepository() *OrderRepositoryMemory {
 	s := make([]*domain.Order, 0)
 	s = append(s, &domain.Order{
 		ID:          "fake-ID",
@@ -24,10 +24,10 @@ func NewMemoryOrderRepository() *MemoryOrderRepository {
 		PaymentLink: "fake-PaymentLink",
 		Items:       nil,
 	})
-	return &MemoryOrderRepository{lock: &sync.RWMutex{}, store: s}
+	return &OrderRepositoryMemory{lock: &sync.RWMutex{}, store: s}
 }
 
-func (m *MemoryOrderRepository) Create(ctx context.Context, order *domain.Order) (*domain.Order, error) {
+func (m *OrderRepositoryMemory) Create(ctx context.Context, order *domain.Order) (*domain.Order, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -48,7 +48,7 @@ func (m *MemoryOrderRepository) Create(ctx context.Context, order *domain.Order)
 	return newOrder, nil
 }
 
-func (m *MemoryOrderRepository) Get(ctx context.Context, id, customerID string) (*domain.Order, error) {
+func (m *OrderRepositoryMemory) Get(ctx context.Context, id, customerID string) (*domain.Order, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -61,7 +61,7 @@ func (m *MemoryOrderRepository) Get(ctx context.Context, id, customerID string) 
 	return nil, &domain.NotFoundError{OrderID: id}
 }
 
-func (m *MemoryOrderRepository) Update(ctx context.Context, o *domain.Order, updateFn func(context.Context, *domain.Order) (*domain.Order, error)) error {
+func (m *OrderRepositoryMemory) Update(ctx context.Context, o *domain.Order, updateFn func(context.Context, *domain.Order) (*domain.Order, error)) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
