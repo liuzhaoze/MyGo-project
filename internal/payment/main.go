@@ -5,7 +5,7 @@ import (
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
 
 	"github.com/liuzhaoze/MyGo-project/common/broker"
-	"github.com/liuzhaoze/MyGo-project/common/config"
+	_ "github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/common/server"
 	"github.com/liuzhaoze/MyGo-project/payment/infrastructure/consumer"
@@ -16,9 +16,6 @@ import (
 
 func init() {
 	logging.Init()
-	if err := config.NewViperConfig(); err != nil {
-		logrus.Fatal(err)
-	}
 }
 
 func main() {

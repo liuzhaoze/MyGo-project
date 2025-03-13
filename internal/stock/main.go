@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
 
-	"github.com/liuzhaoze/MyGo-project/common/config"
+	_ "github.com/liuzhaoze/MyGo-project/common/config"
 	"github.com/liuzhaoze/MyGo-project/common/discovery"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
@@ -18,9 +18,6 @@ import (
 
 func init() {
 	logging.Init()
-	if err := config.NewViperConfig(); err != nil {
-		logrus.Fatal(err)
-	}
 }
 
 func main() {

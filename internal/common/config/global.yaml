@@ -29,6 +29,7 @@ rabbitmq:
   password: guest
   host: 127.0.0.1
   port: 5672
+  max-retry: 3
 
 stripe-key: "${STRIPE_KEY}" # 值仅为提示作用，viper 会直接寻找 STRIPE_KEY 环境变量
 stripe-endpoint-secret: "${STRIPE_ENDPOINT_SECRET}"
