@@ -36,3 +36,6 @@ type Order struct {
 	PaymentLink string `json:"payment_link"`
 	Status      string `json:"status"`
 }
+
+// PostCustomerCustomerIdOrdersJSONRequestBody defines body for PostCustomerCustomerIdOrders for application/json ContentType.
+type PostCustomerCustomerIdOrdersJSONRequestBody = CreateOrderRequest
