@@ -32,11 +32,11 @@ func TestCreateOrder_success(t *testing.T) {
 		CustomerId: customerID,
 		Items: []serverWrapper.ItemWithQuantity{
 			{
-				Id:       "test-item-1",
+				Id:       "price_1R0J9KAe8D0pztRYHqE5sbPn",
 				Quantity: int32(1),
 			},
 			{
-				Id:       "test-item-2",
+				Id:       "price_1QzWgnAe8D0pztRYOGHS1igj",
 				Quantity: int32(2),
 			},
 		},

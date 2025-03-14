@@ -2,11 +2,11 @@ package ports
 
 import (
 	"context"
-	"github.com/liuzhaoze/MyGo-project/common/tracing"
-
 	"github.com/liuzhaoze/MyGo-project/common/genproto/stockpb"
+	"github.com/liuzhaoze/MyGo-project/common/tracing"
 	"github.com/liuzhaoze/MyGo-project/stock/app"
 	"github.com/liuzhaoze/MyGo-project/stock/app/query"
+	"github.com/liuzhaoze/MyGo-project/stock/converter"
 )
 
 type GRPCServer struct {
@@ -32,9 +32,14 @@ func (G GRPCServer) CheckIfItemsInStock(ctx context.Context, request *stockpb.Ch
 	_, span := tracing.Start(ctx, "check_if_items_in_stock")
 	defer span.End()
 
-	items, err := G.app.Queries.CheckIfItemsInStock.Handle(ctx, query.CheckIfItemsInStock{Items: request.Items})
+	items, err := G.app.Queries.CheckIfItemsInStock.Handle(ctx, query.CheckIfItemsInStock{
+		Items: converter.NewItemWithQuantityConverter().ProtosToEntities(request.Items),
+	})
 	if err != nil {
 		return nil, err
 	}
-	return &stockpb.CheckIfItemsInStockResponse{InStock: 1, Items: items}, nil
+	return &stockpb.CheckIfItemsInStockResponse{
+		InStock: 1,
+		Items:   converter.NewItemConverter().EntitiesToProtos(items),
+	}, nil
 }
