@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
 	"net/http"
@@ -18,21 +19,29 @@ func (b *BaseResponse) Response(c *gin.Context, err error, data interface{}) {
 }
 
 func (b *BaseResponse) success(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, response{
+	resp := response{
 		ErrorCode: 0,
 		Message:   "success",
 		Data:      data,
 		TraceID:   tracing.TraceID(c.Request.Context()),
-	})
+	}
+	c.JSON(http.StatusOK, resp)
+
+	respJson, _ := json.Marshal(resp)
+	c.Set("response", respJson)
 }
 
 func (b *BaseResponse) error(c *gin.Context, err error) {
-	c.JSON(http.StatusOK, response{
+	resp := response{
 		ErrorCode: 2,
 		Message:   err.Error(),
 		Data:      nil,
 		TraceID:   tracing.TraceID(c.Request.Context()),
-	})
+	}
+	c.JSON(http.StatusOK, resp)
+
+	respJson, _ := json.Marshal(resp)
+	c.Set("response", respJson)
 }
 
 type response struct {
