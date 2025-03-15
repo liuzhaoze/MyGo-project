@@ -38,6 +38,10 @@ func (m MySQL) BatchGetStockByID(ctx context.Context, productIDS []string) ([]St
 	return result, nil
 }
 
+func (m MySQL) StartTransaction(f func(tx *gorm.DB) error) error {
+	return m.db.Transaction(f)
+}
+
 type StockModel struct {
 	ID        int64     `gorm:"column:id"`
 	ProductID string    `gorm:"column:product_id"`
