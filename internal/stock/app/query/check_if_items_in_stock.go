@@ -46,9 +46,12 @@ var stub = map[string]string{
 	"2": "price_1R0J9KAe8D0pztRYHqE5sbPn",
 }
 
-func (h checkIfItemsInStockHandler) Handle(ctx context.Context, q CheckIfItemsInStock) ([]*entity.Item, error) {
+func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfItemsInStock) ([]*entity.Item, error) {
+	if err := h.checkStock(ctx, query.Items); err != nil {
+		return nil, err
+	}
 	var res []*entity.Item
-	for _, item := range q.Items {
+	for _, item := range query.Items {
 		priceID, err := h.stripeAPI.GetPriceByProductID(ctx, item.ID)
 		if err != nil || priceID == "" {
 			return nil, err
@@ -59,7 +62,47 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, q CheckIfItemsIn
 			PriceID:  priceID,
 		})
 	}
+	// TODO: 扣库存
 	return res, nil
+}
+
+func (h checkIfItemsInStockHandler) checkStock(ctx context.Context, query []*entity.ItemWithQuantity) error {
+	var ids []string
+	for _, i := range query {
+		ids = append(ids, i.ID)
+	}
+
+	records, err := h.stockRepo.GetStock(ctx, ids)
+	if err != nil {
+		return err
+	}
+
+	var idQuantityMap = make(map[string]int32)
+	for _, r := range records {
+		idQuantityMap[r.ID] += r.Quantity
+	}
+	var (
+		ok       = true
+		failedOn []struct {
+			ID   string
+			Want int32
+			Have int32
+		}
+	)
+	for _, i := range query {
+		if i.Quantity > idQuantityMap[i.ID] {
+			ok = false
+			failedOn = append(failedOn, struct {
+				ID   string
+				Want int32
+				Have int32
+			}{ID: i.ID, Want: i.Quantity, Have: idQuantityMap[i.ID]})
+		}
+	}
+	if ok {
+		return nil
+	}
+	return domain.ExceedStockError{FailedOn: failedOn}
 }
 
 func getStubPriceID(id string) string {

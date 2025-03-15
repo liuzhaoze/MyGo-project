@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/stock/infrastructure/integration"
+	"github.com/liuzhaoze/MyGo-project/stock/infrastructure/persistent"
 
 	"github.com/liuzhaoze/MyGo-project/common/metrics"
 	"github.com/liuzhaoze/MyGo-project/stock/adapters"
@@ -12,7 +13,9 @@ import (
 )
 
 func NewApplication(ctx context.Context) app.Application {
-	stockRepo := adapters.NewMemoryStockRepository()
+	//stockRepo := adapters.NewMemoryStockRepository()
+	db := persistent.NewMySQL()
+	stockRepo := adapters.NewMySQLStockRepository(db)
 	logger := logrus.NewEntry(logrus.StandardLogger())
 	stripeAPI := integration.NewStripeAPI()
 	metricsClient := metrics.TodoMetrics{}
