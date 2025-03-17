@@ -8,6 +8,7 @@ replace github.com/liuzhaoze/MyGo-project/common => ../common
 
 require (
 	github.com/liuzhaoze/MyGo-project/common v0.0.0-00010101000000-000000000000
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stripe/stripe-go/v81 v81.4.0

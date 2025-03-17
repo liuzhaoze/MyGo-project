@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/liuzhaoze/MyGo-project/common/handler/errors"
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
 	"net/http"
 )
@@ -19,9 +20,10 @@ func (b *BaseResponse) Response(c *gin.Context, err error, data interface{}) {
 }
 
 func (b *BaseResponse) success(c *gin.Context, data interface{}) {
+	errno, errmsg := errors.Output(nil)
 	resp := response{
-		ErrorCode: 0,
-		Message:   "success",
+		ErrorCode: errno,
+		Message:   errmsg,
 		Data:      data,
 		TraceID:   tracing.TraceID(c.Request.Context()),
 	}
@@ -32,9 +34,10 @@ func (b *BaseResponse) success(c *gin.Context, data interface{}) {
 }
 
 func (b *BaseResponse) error(c *gin.Context, err error) {
+	errno, errmsg := errors.Output(err)
 	resp := response{
-		ErrorCode: 2,
-		Message:   err.Error(),
+		ErrorCode: errno,
+		Message:   errmsg,
 		Data:      nil,
 		TraceID:   tracing.TraceID(c.Request.Context()),
 	}

@@ -1,11 +1,12 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/liuzhaoze/MyGo-project/common"
 	client "github.com/liuzhaoze/MyGo-project/common/client/order"
+	"github.com/liuzhaoze/MyGo-project/common/consts"
+	"github.com/liuzhaoze/MyGo-project/common/handler/errors"
 	"github.com/liuzhaoze/MyGo-project/order/app"
 	"github.com/liuzhaoze/MyGo-project/order/app/command"
 	"github.com/liuzhaoze/MyGo-project/order/app/dto"
@@ -29,9 +30,11 @@ func (H HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerID stri
 	}()
 
 	if err = c.ShouldBindJSON(&req); err != nil {
+		err = errors.NewWithError(consts.ErrnoBindRequestError, err)
 		return
 	}
 	if err = H.validate(req); err != nil {
+		err = errors.NewWithError(consts.ErrorRequestValidateError, err)
 		return
 	}
 
@@ -73,7 +76,7 @@ func (H HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, customerI
 func (H HTTPServer) validate(req client.CreateOrderRequest) error {
 	for _, v := range req.Items {
 		if v.Quantity <= 0 {
-			return errors.New("quantity must be positive")
+			return fmt.Errorf("quantity must be positive, got %d from %s", v.Quantity, v.Id)
 		}
 	}
 	return nil
