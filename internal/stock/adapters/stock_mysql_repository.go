@@ -42,10 +42,10 @@ func (m MySQLStockRepository) UpdateStock(
 	ctx context.Context,
 	data []*entity.ItemWithQuantity,
 	updateFn func(
-	ctx context.Context,
-	existing []*entity.ItemWithQuantity,
-	query []*entity.ItemWithQuantity,
-) ([]*entity.ItemWithQuantity, error),
+		ctx context.Context,
+		existing []*entity.ItemWithQuantity,
+		query []*entity.ItemWithQuantity,
+	) ([]*entity.ItemWithQuantity, error),
 ) error {
 	return m.db.StartTransaction(func(tx *gorm.DB) (err error) {
 		defer func() {

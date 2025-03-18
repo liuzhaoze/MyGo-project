@@ -3,10 +3,12 @@ package persistent
 import (
 	"context"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -34,12 +36,18 @@ func NewMySQLWithDB(db *gorm.DB) *MySQL {
 }
 
 func (m MySQL) Create(ctx context.Context, create *StockModel) error {
-	return m.db.WithContext(ctx).Create(create).Error
+	_, deferLog := logging.WhenMySQL(ctx, "Create", create)
+	var returning StockModel
+	err := m.db.WithContext(ctx).Model(&returning).Clauses(clause.Returning{}).Create(create).Error
+	defer deferLog(returning, &err)
+	return err
 }
 
 func (m MySQL) BatchGetStockByID(ctx context.Context, productIDS []string) ([]StockModel, error) {
+	_, deferLog := logging.WhenMySQL(ctx, "BatchGetStockByID", productIDS)
 	var result []StockModel
-	tx := m.db.WithContext(ctx).Where("product_id IN ?", productIDS).Find(&result)
+	tx := m.db.WithContext(ctx).Clauses(clause.Returning{}).Where("product_id IN ?", productIDS).Find(&result)
+	defer deferLog(result, &tx.Error)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
