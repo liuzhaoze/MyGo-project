@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"sync"
 	"testing"
+	"time"
 )
 
 func setupTestDB(t *testing.T) *persistent.MySQL {
@@ -99,4 +100,62 @@ func TestMySQLStockRepository_UpdateStock_race(t *testing.T) {
 
 	expected := initialStock - goroutines // 并发扣除 goroutines 个数量
 	assert.EqualValues(t, expected, res[0].Quantity)
+}
+
+func TestMySQLStockRepository_UpdateStock_oversell(t *testing.T) {
+	t.Parallel()
+	db := setupTestDB(t)
+
+	var (
+		ctx          = context.Background()
+		testItem     = "test-oversell-item"
+		initialStock = 5
+	)
+
+	err := db.Create(ctx, &persistent.StockModel{
+		ProductID: testItem,
+		Quantity:  int32(initialStock),
+	})
+	assert.NoError(t, err)
+
+	repo := NewMySQLStockRepository(db)
+	var wg sync.WaitGroup
+	goroutines := 100
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		//time.Sleep(time.Duration(i) * time.Millisecond)
+		//time.Sleep(200 * time.Millisecond)
+		go func() {
+			defer wg.Done()
+			err := repo.UpdateStock(ctx, []*entity.ItemWithQuantity{
+				{ID: testItem, Quantity: 1},
+			},
+				func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity) ([]*entity.ItemWithQuantity, error) {
+					var newItems []*entity.ItemWithQuantity
+					for _, e := range existing {
+						for _, q := range query {
+							if e.ID == q.ID {
+								newItems = append(newItems, &entity.ItemWithQuantity{
+									ID:       e.ID,
+									Quantity: e.Quantity - q.Quantity,
+								})
+							}
+						}
+					}
+					return newItems, nil
+				},
+			)
+			assert.NoError(t, err)
+		}()
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	wg.Wait()
+
+	res, err := db.BatchGetStockByID(ctx, []string{testItem})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, res, "res cannot be empty")
+
+	// 5 个商品给 50 个 goroutines 买，最后剩余 0 个
+	assert.GreaterOrEqual(t, res[0].Quantity, int32(0))
 }

@@ -53,36 +53,9 @@ func (m MySQLStockRepository) UpdateStock(
 				logrus.Warnf("update stock transaction err=%v", err)
 			}
 		}()
-		var dest []*persistent.StockModel
-		if err = tx.Table("o_stock").
-			Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
-			Where("product_id IN ?", getIDFromEntities(data)).Find(&dest).Error; err != nil {
-			return errors.Wrap(err, "failed to find data")
-		}
-		existing := m.unmarshalFromDatabase(dest)
-
-		//logrus.WithFields(logrus.Fields{
-		//	"existing": existing,
-		//	"data":     data,
-		//}).Info("before update")
-
-		updated, err := updateFn(ctx, existing, data)
-		if err != nil {
-			return err
-		}
-
-		//logrus.WithFields(logrus.Fields{
-		//	"existing": existing,
-		//	"data":     data,
-		//	"updated":  updated,
-		//}).Info("after update")
-
-		for _, upd := range updated {
-			if err = tx.Table("o_stock").Where("product_id = ?", upd.ID).Update("quantity", upd.Quantity).Error; err != nil {
-				return errors.Wrapf(err, "failed to update %s", upd.ID)
-			}
-		}
-		return nil
+		err = m.updatePessimistic(ctx, tx, data, updateFn)
+		//err = m.updateOptimistic(ctx, tx, data, updateFn)
+		return err
 	})
 }
 
@@ -95,6 +68,90 @@ func (m MySQLStockRepository) unmarshalFromDatabase(dest []*persistent.StockMode
 		})
 	}
 	return result
+}
+
+func (m MySQLStockRepository) updatePessimistic(
+	ctx context.Context,
+	tx *gorm.DB,
+	data []*entity.ItemWithQuantity,
+	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity) ([]*entity.ItemWithQuantity, error),
+) error {
+	var dest []*persistent.StockModel
+	if err := tx.Model(&persistent.StockModel{}).
+		Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
+		Where("product_id IN (?)", getIDFromEntities(data)).Find(&dest).Error; err != nil {
+		return errors.Wrap(err, "failed to find data")
+	}
+
+	existing := m.unmarshalFromDatabase(dest)
+
+	//logrus.WithFields(logrus.Fields{
+	//	"existing": existing,
+	//	"data":     data,
+	//}).Info("before update")
+
+	updated, err := updateFn(ctx, existing, data)
+	if err != nil {
+		return err
+	}
+
+	//logrus.WithFields(logrus.Fields{
+	//	"existing": existing,
+	//	"data":     data,
+	//	"updated":  updated,
+	//}).Info("after update")
+
+	for _, upd := range updated {
+		for _, query := range data {
+			if upd.ID == query.ID {
+				if err = tx.Table("o_stock").
+					Where("product_id = ? AND quantity - ? >= 0", upd.ID, query.Quantity).
+					Update("quantity", gorm.Expr("quantity - ?", query.Quantity)).Error; err != nil {
+					return errors.Wrapf(err, "failed to update %s", upd.ID)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (m MySQLStockRepository) updateOptimistic(
+	ctx context.Context,
+	tx *gorm.DB,
+	data []*entity.ItemWithQuantity,
+	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity) ([]*entity.ItemWithQuantity, error),
+) error {
+	var dest []*persistent.StockModel
+	if err := tx.Model(&persistent.StockModel{}).
+		Where("product_id IN (?)", getIDFromEntities(data)).Find(&dest).Error; err != nil {
+		return errors.Wrap(err, "failed to find data")
+	}
+
+	//logrus.WithFields(logrus.Fields{
+	//	"existing": existing,
+	//	"data":     data,
+	//}).Info("before update")
+
+	for _, queryData := range data {
+		var latestRecord persistent.StockModel
+		if err := tx.Model(&persistent.StockModel{}).
+			Where("product_id = ?", queryData.ID).First(&latestRecord).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&persistent.StockModel{}).
+			Where("product_id = ? AND version = ? AND quantity - ? >= 0", queryData.ID, latestRecord.Version, queryData.Quantity).
+			Updates(map[string]any{"quantity": gorm.Expr("quantity - ?", queryData.Quantity), "version": latestRecord.Version + 1}).Error; err != nil {
+			return err
+		}
+	}
+
+	//logrus.WithFields(logrus.Fields{
+	//	"existing": existing,
+	//	"data":     data,
+	//	"updated":  updated,
+	//}).Info("after update")
+
+	return nil
 }
 
 func getIDFromEntities(items []*entity.ItemWithQuantity) []string {
