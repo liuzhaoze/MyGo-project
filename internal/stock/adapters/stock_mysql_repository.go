@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type MySQLStockRepository struct {
@@ -41,10 +42,10 @@ func (m MySQLStockRepository) UpdateStock(
 	ctx context.Context,
 	data []*entity.ItemWithQuantity,
 	updateFn func(
-		ctx context.Context,
-		existing []*entity.ItemWithQuantity,
-		query []*entity.ItemWithQuantity,
-	) ([]*entity.ItemWithQuantity, error),
+	ctx context.Context,
+	existing []*entity.ItemWithQuantity,
+	query []*entity.ItemWithQuantity,
+) ([]*entity.ItemWithQuantity, error),
 ) error {
 	return m.db.StartTransaction(func(tx *gorm.DB) (err error) {
 		defer func() {
@@ -53,7 +54,9 @@ func (m MySQLStockRepository) UpdateStock(
 			}
 		}()
 		var dest []*persistent.StockModel
-		if err = tx.Table("o_stock").Where("product_id IN ?", getIDFromEntities(data)).Find(&dest).Error; err != nil {
+		if err = tx.Table("o_stock").
+			Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
+			Where("product_id IN ?", getIDFromEntities(data)).Find(&dest).Error; err != nil {
 			return errors.Wrap(err, "failed to find data")
 		}
 		existing := m.unmarshalFromDatabase(dest)

@@ -29,6 +29,14 @@ func NewMySQL() *MySQL {
 	return &MySQL{db: db}
 }
 
+func NewMySQLWithDB(db *gorm.DB) *MySQL {
+	return &MySQL{db: db}
+}
+
+func (m MySQL) Create(ctx context.Context, create *StockModel) error {
+	return m.db.WithContext(ctx).Create(create).Error
+}
+
 func (m MySQL) BatchGetStockByID(ctx context.Context, productIDS []string) ([]StockModel, error) {
 	var result []StockModel
 	tx := m.db.WithContext(ctx).Where("product_id IN ?", productIDS).Find(&result)
@@ -50,6 +58,11 @@ type StockModel struct {
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 }
 
-func (m StockModel) TableName() string {
+func (m *StockModel) TableName() string {
 	return "o_stock"
+}
+
+func (m *StockModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.UpdatedAt = time.Now()
+	return
 }
