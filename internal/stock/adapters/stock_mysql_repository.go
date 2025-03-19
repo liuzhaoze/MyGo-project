@@ -4,10 +4,10 @@ import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/stock/entity"
 	"github.com/liuzhaoze/MyGo-project/stock/infrastructure/persistent"
+	"github.com/liuzhaoze/MyGo-project/stock/infrastructure/persistent/builder"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type MySQLStockRepository struct {
@@ -24,7 +24,8 @@ func (m MySQLStockRepository) GetItems(ctx context.Context, ids []string) ([]*en
 }
 
 func (m MySQLStockRepository) GetStock(ctx context.Context, ids []string) ([]*entity.ItemWithQuantity, error) {
-	data, err := m.db.BatchGetStockByID(ctx, ids)
+	query := builder.NewStock().ProductIDs(ids...)
+	data, err := m.db.BatchGetStockByID(ctx, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "BatchGetStockByID error")
 	}
@@ -77,9 +78,8 @@ func (m MySQLStockRepository) updatePessimistic(
 	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity) ([]*entity.ItemWithQuantity, error),
 ) error {
 	var dest []*persistent.StockModel
-	if err := tx.Model(&persistent.StockModel{}).
-		Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
-		Where("product_id IN (?)", getIDFromEntities(data)).Find(&dest).Error; err != nil {
+	if err := builder.NewStock().ProductIDs(getIDFromEntities(data)...).ForUpdate().
+		Fill(tx.Model(&persistent.StockModel{})).Find(&dest).Error; err != nil {
 		return errors.Wrap(err, "failed to find data")
 	}
 
@@ -104,8 +104,7 @@ func (m MySQLStockRepository) updatePessimistic(
 	for _, upd := range updated {
 		for _, query := range data {
 			if upd.ID == query.ID {
-				if err = tx.Table("o_stock").
-					Where("product_id = ? AND quantity - ? >= 0", upd.ID, query.Quantity).
+				if err = builder.NewStock().ProductIDs(upd.ID).QuantityGE(query.Quantity).Fill(tx.Model(&persistent.StockModel{})).
 					Update("quantity", gorm.Expr("quantity - ?", query.Quantity)).Error; err != nil {
 					return errors.Wrapf(err, "failed to update %s", upd.ID)
 				}
@@ -122,8 +121,7 @@ func (m MySQLStockRepository) updateOptimistic(
 	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity) ([]*entity.ItemWithQuantity, error),
 ) error {
 	var dest []*persistent.StockModel
-	if err := tx.Model(&persistent.StockModel{}).
-		Where("product_id IN (?)", getIDFromEntities(data)).Find(&dest).Error; err != nil {
+	if err := builder.NewStock().ProductIDs(getIDFromEntities(data)...).Fill(tx.Model(&persistent.StockModel{})).Find(&dest).Error; err != nil {
 		return errors.Wrap(err, "failed to find data")
 	}
 
@@ -134,12 +132,11 @@ func (m MySQLStockRepository) updateOptimistic(
 
 	for _, queryData := range data {
 		var latestRecord persistent.StockModel
-		if err := tx.Model(&persistent.StockModel{}).
-			Where("product_id = ?", queryData.ID).First(&latestRecord).Error; err != nil {
+		if err := builder.NewStock().ProductIDs(queryData.ID).Fill(tx.Model(&persistent.StockModel{})).First(&latestRecord).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(&persistent.StockModel{}).
-			Where("product_id = ? AND version = ? AND quantity - ? >= 0", queryData.ID, latestRecord.Version, queryData.Quantity).
+
+		if err := builder.NewStock().ProductIDs(queryData.ID).Versions(latestRecord.Version).QuantityGE(queryData.Quantity).Fill(tx.Model(&persistent.StockModel{})).
 			Updates(map[string]any{"quantity": gorm.Expr("quantity - ?", queryData.Quantity), "version": latestRecord.Version + 1}).Error; err != nil {
 			return err
 		}

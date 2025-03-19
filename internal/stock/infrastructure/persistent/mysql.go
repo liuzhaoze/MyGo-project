@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
+	"github.com/liuzhaoze/MyGo-project/stock/infrastructure/persistent/builder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -43,10 +44,10 @@ func (m MySQL) Create(ctx context.Context, create *StockModel) error {
 	return err
 }
 
-func (m MySQL) BatchGetStockByID(ctx context.Context, productIDS []string) ([]StockModel, error) {
-	_, deferLog := logging.WhenMySQL(ctx, "BatchGetStockByID", productIDS)
+func (m MySQL) BatchGetStockByID(ctx context.Context, query *builder.Stock) ([]StockModel, error) {
+	_, deferLog := logging.WhenMySQL(ctx, "BatchGetStockByID", query)
 	var result []StockModel
-	tx := m.db.WithContext(ctx).Clauses(clause.Returning{}).Where("product_id IN ?", productIDS).Find(&result)
+	tx := query.Fill(m.db.WithContext(ctx).Clauses(clause.Returning{})).Find(&result)
 	defer deferLog(result, &tx.Error)
 	if tx.Error != nil {
 		return nil, tx.Error
