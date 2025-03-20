@@ -72,32 +72,24 @@ func (h *PaymentHandler) handleWebhook(c *gin.Context) {
 		if session.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 			var items []*orderpb.Item
 			_ = json.Unmarshal([]byte(session.Metadata["items"]), &items)
-			marshalledOrder, err := json.Marshal(&domain.Order{
-				ID:          session.Metadata["orderID"],
-				CustomerID:  session.Metadata["customerID"],
-				Status:      string(stripe.CheckoutSessionPaymentStatusPaid),
-				PaymentLink: session.Metadata["paymentLink"],
-				Items:       items,
-			})
-			if err != nil {
-				err = errors.Wrap(err, "error marshal domain.order")
-				c.JSON(http.StatusBadRequest, err.Error())
-				return
-			}
 
 			t := otel.Tracer("RabbitMQ")
 			ctx, span := t.Start(c.Request.Context(), fmt.Sprintf("RabbitMQ.%s.publish", broker.EventOrderPaid))
 			defer span.End()
 
-			headers := broker.InjectRabbitMQHeaders(ctx)
-
-			_ = h.channel.PublishWithContext(ctx, broker.EventOrderPaid, "", false, false, amqp.Publishing{
-				ContentType:  "application/json",
-				DeliveryMode: amqp.Persistent,
-				Body:         marshalledOrder,
-				Headers:      headers,
+			_ = broker.PublishEvent(ctx, broker.PublishEventRequest{
+				Channel:  h.channel,
+				Routing:  broker.FanOut,
+				Queue:    "",
+				Exchange: broker.EventOrderPaid,
+				Body: &domain.Order{
+					ID:          session.Metadata["orderID"],
+					CustomerID:  session.Metadata["customerID"],
+					Status:      string(stripe.CheckoutSessionPaymentStatusPaid),
+					PaymentLink: session.Metadata["paymentLink"],
+					Items:       items,
+				},
 			})
-			logrus.WithContext(c).Infof("message published to %s, body: %s", broker.EventOrderPaid, string(marshalledOrder))
 		}
 	}
 
