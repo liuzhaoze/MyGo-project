@@ -3,6 +3,7 @@ package broker
 import (
 	"context"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"time"
@@ -70,8 +71,13 @@ func createDLX(ch *amqp.Channel) error {
 	return err
 }
 
-func HandleRetry(ctx context.Context, ch *amqp.Channel, d *amqp.Delivery) error {
-	logrus.Warn("handle_retry.max-retry-count", maxRetryCount)
+func HandleRetry(ctx context.Context, ch *amqp.Channel, d *amqp.Delivery) (err error) {
+	fields, deferLog := logging.WhenRequest(ctx, "HandleRetry", map[string]any{
+		"delivery":        d,
+		"max_retry_count": maxRetryCount,
+	})
+	defer deferLog(nil, &err)
+
 	if d.Headers == nil {
 		d.Headers = amqp.Table{}
 	}
@@ -81,10 +87,11 @@ func HandleRetry(ctx context.Context, ch *amqp.Channel, d *amqp.Delivery) error 
 	}
 	retryCount++
 	d.Headers[amqpRetryHeaderKey] = retryCount
+	fields["retry_count"] = retryCount
 
 	if retryCount > maxRetryCount {
-		logrus.Infof("moving message %s to dlq", d.MessageId)
-		return ch.PublishWithContext(ctx, "", DLQ, false, false, amqp.Publishing{
+		logrus.WithContext(ctx).Infof("moving message %s to dlq", d.MessageId)
+		return doPublish(ctx, ch, "", DLQ, false, false, amqp.Publishing{
 			Headers:      d.Headers,
 			ContentType:  "application/json",
 			Body:         d.Body,
@@ -92,9 +99,9 @@ func HandleRetry(ctx context.Context, ch *amqp.Channel, d *amqp.Delivery) error 
 		})
 	}
 
-	logrus.Infof("retrying message %s, count=%d", d.MessageId, retryCount)
+	logrus.WithContext(ctx).Debugf("retrying message %s, count=%d", d.MessageId, retryCount)
 	time.Sleep(time.Second * time.Duration(retryCount))
-	return ch.PublishWithContext(ctx, d.Exchange, d.RoutingKey, false, false, amqp.Publishing{
+	return doPublish(ctx, ch, d.Exchange, d.RoutingKey, false, false, amqp.Publishing{
 		Headers:      d.Headers,
 		ContentType:  "application/json",
 		Body:         d.Body,

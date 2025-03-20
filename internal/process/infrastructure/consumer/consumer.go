@@ -3,8 +3,9 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"time"
 
@@ -61,42 +62,42 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 }
 
 func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Queue) {
-	var err error
-	logrus.Infof("process receive a message from %s, msg=%v", q.Name, string(msg.Body))
-
-	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
 	t := otel.Tracer("RabbitMQ")
-	mqCtx, span := t.Start(ctx, fmt.Sprintf("RabbitMQ.%s.consume", q.Name))
+	ctx, span := t.Start(broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers), fmt.Sprintf("RabbitMQ.%s.consume", q.Name))
+	defer span.End()
 
+	var err error
 	defer func() {
-		span.End()
 		if err != nil {
+			logging.Warnf(ctx, nil, "consume message failed || from=%s || msg=%+v || err=%v", q.Name, msg, err)
 			_ = msg.Nack(false, false)
 		} else {
+			logging.Infof(ctx, nil, "%s", "consume message success")
 			_ = msg.Ack(false)
 		}
 	}()
 
 	o := &Order{}
-	if err := json.Unmarshal(msg.Body, o); err != nil {
-		logrus.Infof("fail to unmarshal order, err=%v", err)
+	if err = json.Unmarshal(msg.Body, o); err != nil {
+		err = errors.Wrap(err, "fail to unmarshal order")
 		return
 	}
 
 	if o.Status != "paid" {
 		err = errors.New("order status is not paid, cannot process order")
 	}
-	process(o)
+	process(ctx, o)
 
-	if err := c.orderGRPC.UpdateOrder(mqCtx, &orderpb.Order{
+	if err = c.orderGRPC.UpdateOrder(ctx, &orderpb.Order{
 		ID:          o.ID,
 		CustomerID:  o.CustomerID,
 		Status:      "ready",
 		Items:       o.Items,
 		PaymentLink: o.PaymentLink,
 	}); err != nil {
-		if err = broker.HandleRetry(mqCtx, ch, &msg); err != nil {
-			logrus.Warnf("process || fail to process order, err=%v", err)
+		logging.Errorf(ctx, nil, "fail to update order, orderID=%s, err=%v", o.ID, err)
+		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
+			err = errors.Wrap(err, "process || fail to process order")
 		}
 		return
 	}
@@ -105,8 +106,8 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 	logrus.Info("consume successfully")
 }
 
-func process(o *Order) {
-	logrus.Printf("processing order: %s\n", o.ID)
+func process(ctx context.Context, o *Order) {
+	logrus.WithContext(ctx).Printf("processing order: %s\n", o.ID)
 	time.Sleep(5 * time.Second)
-	logrus.Printf("order %s processed\n", o.ID)
+	logrus.WithContext(ctx).Printf("order %s processed\n", o.ID)
 }

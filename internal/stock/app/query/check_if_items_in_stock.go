@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/common/handler/redis"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/stock/entity"
 	"github.com/liuzhaoze/MyGo-project/stock/infrastructure/integration"
 	"github.com/pkg/errors"
@@ -58,9 +59,10 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfIte
 	if err := lock(ctx, getLockKey(query)); err != nil {
 		return nil, errors.Wrapf(err, "redis lock error, key=%s", getLockKey(query))
 	}
+
 	defer func() {
 		if err := unlock(ctx, getLockKey(query)); err != nil {
-			logrus.Warnf("redis unlock failed, err=%v", err)
+			logging.Warnf(ctx, nil, "redis unlock error, err=%v", err)
 		}
 	}()
 

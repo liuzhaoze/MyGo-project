@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 
 	"github.com/liuzhaoze/MyGo-project/common/broker"
@@ -48,23 +50,24 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 }
 
 func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Queue) {
-	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
 	t := otel.Tracer("RabbitMQ")
-	_, span := t.Start(ctx, fmt.Sprintf("RabbitMQ.%s.consume", q.Name))
+	ctx, span := t.Start(broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers), fmt.Sprintf("RabbitMQ.%s.consume", q.Name))
 	defer span.End()
 
 	var err error
 	defer func() {
 		if err != nil {
+			logging.Warnf(ctx, nil, "consume message failed || from=%s || msg=%+v || err=%v", q.Name, msg, err)
 			_ = msg.Nack(false, false)
 		} else {
+			logging.Infof(ctx, nil, "%s", "consume message success")
 			_ = msg.Ack(false)
 		}
 	}()
 
 	o := &domain.Order{}
-	if err := json.Unmarshal(msg.Body, o); err != nil {
-		logrus.Infof("error unmarshal msg.body into domain.Order, err=%v", err)
+	if err = json.Unmarshal(msg.Body, o); err != nil {
+		err = errors.Wrap(err, "error unmarshal msg.body into domain.Order")
 		return
 	}
 	_, err = c.app.Commands.UpdateOrder.Handle(ctx, command.UpdateOrder{
@@ -77,14 +80,12 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 		},
 	})
 	if err != nil {
-		logrus.Infof("error updating order, orderID=%s, err=%v", o.ID, err)
+		logging.Errorf(ctx, nil, "error updating order || orderID=%s, err=%v", o.ID, err)
 		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
-			logrus.Warnf("retry_error || error handle retry, messageID=%s, err=%v", msg.MessageId, err)
+			err = errors.Wrapf(err, "retry_error || error handle retry, messageID=%s, err=%v", msg.MessageId, err)
 		}
 		return
 	}
 
 	span.AddEvent("order.updated")
-
-	logrus.Info("order consume paid event success!")
 }

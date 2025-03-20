@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"errors"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -12,17 +13,17 @@ func SetNX(ctx context.Context, client *redis.Client, key, value string, ttl tim
 	now := time.Now()
 	defer func() {
 		l := logrus.WithContext(ctx).WithFields(logrus.Fields{
-			"start": now,
-			"key":   key,
-			"value": value,
-			"error": err,
-			"cost":  time.Since(now).Milliseconds(),
+			"start":       now,
+			"key":         key,
+			"value":       value,
+			logging.Error: err,
+			logging.Cost:  time.Since(now).Milliseconds(),
 		})
 
 		if err == nil {
-			l.Info("redis_setnx success")
+			l.Info("_redis_setnx_success")
 		} else {
-			l.Error("redis_setnx fail")
+			l.Error("_redis_setnx_fail")
 		}
 	}()
 
@@ -36,16 +37,16 @@ func Del(ctx context.Context, client *redis.Client, key string) (err error) {
 	now := time.Now()
 	defer func() {
 		l := logrus.WithContext(ctx).WithFields(logrus.Fields{
-			"start": now,
-			"key":   key,
-			"error": err,
-			"cost":  time.Since(now).Milliseconds(),
+			"start":       now,
+			"key":         key,
+			logging.Error: err,
+			logging.Cost:  time.Since(now).Milliseconds(),
 		})
 
 		if err == nil {
-			l.Info("redis_del success")
+			l.Info("_redis_del_success")
 		} else {
-			l.Error("redis_del fail")
+			l.Error("_redis_del_fail")
 		}
 	}()
 

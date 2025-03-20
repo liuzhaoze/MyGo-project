@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 
 	"github.com/liuzhaoze/MyGo-project/common/broker"
@@ -45,36 +47,34 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 }
 
 func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Queue) {
-	logrus.Infof("payment receive a message from %s, msg=%v", q.Name, string(msg.Body))
-
-	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
 	t := otel.Tracer("RabbitMQ")
-	_, span := t.Start(ctx, fmt.Sprintf("RabbitMQ.%s.consume", q.Name))
+	ctx, span := t.Start(broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers), fmt.Sprintf("RabbitMQ.%s.consume", q.Name))
 	defer span.End()
 
+	logging.Infof(ctx, nil, "payment receive a message from %s, msg=%v", q.Name, string(msg.Body))
 	var err error
 	defer func() {
 		if err != nil {
+			logging.Warnf(ctx, nil, "consume message failed || from=%s || msg=%+v || err=%v", q.Name, msg, err)
 			_ = msg.Nack(false, false)
 		} else {
+			logging.Infof(ctx, nil, "%s", "consume message success")
 			_ = msg.Ack(false)
 		}
 	}()
 
 	o := &orderpb.Order{}
-	if err := json.Unmarshal(msg.Body, o); err != nil {
-		logrus.Infof("fail to unmarshal order, err=%v", err)
+	if err = json.Unmarshal(msg.Body, o); err != nil {
+		err = errors.Wrap(err, "fail to unmarshal order")
 		return
 	}
 
-	if _, err := c.app.Commands.CreatePayment.Handle(ctx, command.CreatePayment{Order: o}); err != nil {
-		logrus.Infof("fail to create payment, err=%v", err)
+	if _, err = c.app.Commands.CreatePayment.Handle(ctx, command.CreatePayment{Order: o}); err != nil {
+		err = errors.Wrap(err, "fail to create payment")
 		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
-			logrus.Warnf("retry_error || error handle retry, messageID=%s, err=%v", msg.MessageId, err)
+			err = errors.Wrapf(err, "retry_error || error handle retry, messageID=%s, err=%v", msg.MessageId, err)
 		}
 	}
 
 	span.AddEvent("payment.created")
-
-	logrus.Info("consume successfully")
 }

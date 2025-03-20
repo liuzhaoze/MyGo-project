@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/common/decorator"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/payment/domain"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -21,6 +22,9 @@ type createPaymentHandler struct {
 }
 
 func (c createPaymentHandler) Handle(ctx context.Context, cmd CreatePayment) (string, error) {
+	var err error
+	defer logging.WhenCommandExecute(ctx, "CreatePaymentHandler", cmd, err)
+
 	// NOTE: 这里作者删了，但是我的正常
 	t := otel.Tracer("payment")
 	ctx, span := t.Start(ctx, "create_payment")
@@ -31,7 +35,6 @@ func (c createPaymentHandler) Handle(ctx context.Context, cmd CreatePayment) (st
 		return "", err
 	}
 
-	logrus.Infof("create payment link for order: %s success, payment link: %s", cmd.Order.ID, link)
 	newOrder := &orderpb.Order{
 		ID:          cmd.Order.ID,
 		CustomerID:  cmd.Order.CustomerID,

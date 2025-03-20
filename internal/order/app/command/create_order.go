@@ -2,10 +2,10 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/liuzhaoze/MyGo-project/common/broker"
 	"github.com/liuzhaoze/MyGo-project/common/decorator"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/order/app/query"
 	"github.com/liuzhaoze/MyGo-project/order/converter"
 	domain "github.com/liuzhaoze/MyGo-project/order/domain/order"
@@ -58,13 +58,11 @@ func NewCreateOrderHandler(
 }
 
 func (c createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*CreateOrderResult, error) {
-	q, err := c.channel.QueueDeclare(broker.EventOrderCreated, true, false, false, false, nil)
-	if err != nil {
-		return nil, err
-	}
+	var err error
+	defer logging.WhenCommandExecute(ctx, "CreateOrderHandler", cmd, err)
 
 	t := otel.Tracer("RabbitMQ")
-	ctx, span := t.Start(ctx, fmt.Sprintf("RabbitMQ.%s.publish", q.Name))
+	ctx, span := t.Start(ctx, fmt.Sprintf("RabbitMQ.%s.publish", broker.EventOrderCreated))
 	defer span.End()
 
 	validItems, err := c.validate(ctx, cmd.Items)
@@ -81,20 +79,15 @@ func (c createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 		return nil, err
 	}
 
-	marshalledOrder, err := json.Marshal(o)
-	if err != nil {
-		return nil, err
-	}
-
-	headers := broker.InjectRabbitMQHeaders(ctx)
-	err = c.channel.PublishWithContext(ctx, "", q.Name, false, false, amqp.Publishing{
-		ContentType:  "application/json",
-		DeliveryMode: amqp.Persistent,
-		Body:         marshalledOrder,
-		Headers:      headers,
+	err = broker.PublishEvent(ctx, broker.PublishEventRequest{
+		Channel:  c.channel,
+		Routing:  broker.Direct,
+		Queue:    broker.EventOrderCreated,
+		Exchange: "",
+		Body:     o,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "publish event error, q.Name=%s", q.Name)
+		return nil, errors.Wrapf(err, "publish event error, q.Name=%s", broker.EventOrderCreated)
 	}
 
 	return &CreateOrderResult{OrderID: o.ID}, nil

@@ -10,7 +10,6 @@ import (
 	"github.com/liuzhaoze/MyGo-project/order/app/command"
 	"github.com/liuzhaoze/MyGo-project/order/app/query"
 	domain "github.com/liuzhaoze/MyGo-project/order/domain/order"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -48,7 +47,6 @@ func (G GRPCServer) GetOrder(ctx context.Context, request *orderpb.GetOrderReque
 }
 
 func (G GRPCServer) UpdateOrder(ctx context.Context, order *orderpb.Order) (*emptypb.Empty, error) {
-	logrus.Infof("order_grpc || request_in || request=%+v", order)
 	o, err := domain.NewOrder(
 		order.ID,
 		order.CustomerID,
