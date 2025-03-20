@@ -18,6 +18,9 @@ payment:
   http-addr: 127.0.0.1:8284
   grpc-addr: 127.0.0.1:8184
 
+process:
+  service-name: process
+
 consul:
   address: 127.0.0.1:8500
 
