@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/liuzhaoze/MyGo-project/common/broker"
 	"github.com/liuzhaoze/MyGo-project/common/decorator"
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/liuzhaoze/MyGo-project/order/app/query"
 	"github.com/liuzhaoze/MyGo-project/order/converter"
 	domain "github.com/liuzhaoze/MyGo-project/order/domain/order"
@@ -58,6 +59,9 @@ func NewCreateOrderHandler(
 }
 
 func (c createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*CreateOrderResult, error) {
+	var err error
+	defer logging.WhenCommandExecute(ctx, "CreateOrderHandler", cmd, err)
+
 	q, err := c.channel.QueueDeclare(broker.EventOrderCreated, true, false, false, false, nil)
 	if err != nil {
 		return nil, err

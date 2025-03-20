@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"net"
 
@@ -33,6 +34,7 @@ func RunGRPCServerOnAddr(addr string, registerServer func(server *grpc.Server)) 
 		grpc.ChainUnaryInterceptor(
 			grpc_tags.UnaryServerInterceptor(grpc_tags.WithFieldExtractor(grpc_tags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry),
+			logging.GRPCUnaryInterceptor,
 		),
 		grpc.ChainStreamInterceptor(
 			grpc_tags.StreamServerInterceptor(grpc_tags.WithFieldExtractor(grpc_tags.CodeGenRequestFieldExtractor)),
