@@ -85,14 +85,15 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfIte
 	}()
 
 	for _, item := range query.Items {
-		priceID, err := h.stripeAPI.GetPriceByProductID(ctx, item.ID)
-		if err != nil || priceID == "" {
+		p, err := h.stripeAPI.GetProductByID(ctx, item.ID)
+		if err != nil {
 			return nil, err
 		}
 		res = append(res, &entity.Item{
 			ID:       item.ID,
+			Name:     p.Name,
 			Quantity: item.Quantity,
-			PriceID:  priceID,
+			PriceID:  p.DefaultPrice.ID,
 		})
 	}
 

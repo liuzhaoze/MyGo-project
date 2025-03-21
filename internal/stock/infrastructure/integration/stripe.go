@@ -30,3 +30,8 @@ func (s *StripeAPI) GetPriceByProductID(ctx context.Context, prodID string) (str
 	}
 	return result.DefaultPrice.ID, err
 }
+
+func (s *StripeAPI) GetProductByID(ctx context.Context, prodID string) (*stripe.Product, error) {
+	stripe.Key = s.apiKey
+	return product.Get(prodID, &stripe.ProductParams{})
+}

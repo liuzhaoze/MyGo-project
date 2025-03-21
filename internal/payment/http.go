@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/consts"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
@@ -85,7 +86,7 @@ func (h *PaymentHandler) handleWebhook(c *gin.Context) {
 				Body: &domain.Order{
 					ID:          session.Metadata["orderID"],
 					CustomerID:  session.Metadata["customerID"],
-					Status:      string(stripe.CheckoutSessionPaymentStatusPaid),
+					Status:      consts.OrderStatusPaid,
 					PaymentLink: session.Metadata["paymentLink"],
 					Items:       items,
 				},

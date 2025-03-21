@@ -46,13 +46,13 @@ func (G GRPCServer) GetOrder(ctx context.Context, request *orderpb.GetOrderReque
 	return converter.NewOrderConverter().EntityToProto(o), nil
 }
 
-func (G GRPCServer) UpdateOrder(ctx context.Context, order *orderpb.Order) (*emptypb.Empty, error) {
+func (G GRPCServer) UpdateOrder(ctx context.Context, request *orderpb.Order) (*emptypb.Empty, error) {
 	o, err := domain.NewOrder(
-		order.ID,
-		order.CustomerID,
-		order.Status,
-		order.PaymentLink,
-		converter.NewItemConverter().ProtosToEntities(order.Items),
+		request.ID,
+		request.CustomerID,
+		request.Status,
+		request.PaymentLink,
+		converter.NewItemConverter().ProtosToEntities(request.Items),
 	)
 	if err != nil {
 		err = status.Error(codes.Internal, err.Error())
@@ -62,6 +62,15 @@ func (G GRPCServer) UpdateOrder(ctx context.Context, order *orderpb.Order) (*emp
 	_, err = G.app.Commands.UpdateOrder.Handle(ctx, command.UpdateOrder{
 		Order: o,
 		UpdateFn: func(ctx context.Context, order *domain.Order) (*domain.Order, error) {
+			if err := order.UpdateStatusTo(request.Status); err != nil {
+				return nil, err
+			}
+			if err := order.UpdatePaymentLink(request.PaymentLink); err != nil {
+				return nil, err
+			}
+			if err := order.UpdateItems(converter.NewItemConverter().ProtosToEntities(request.Items)); err != nil {
+				return nil, err
+			}
 			return order, nil
 		},
 	})

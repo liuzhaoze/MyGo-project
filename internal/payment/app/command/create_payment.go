@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"github.com/liuzhaoze/MyGo-project/common/consts"
 	"github.com/liuzhaoze/MyGo-project/common/decorator"
 	"github.com/liuzhaoze/MyGo-project/common/genproto/orderpb"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
@@ -38,7 +39,7 @@ func (c createPaymentHandler) Handle(ctx context.Context, cmd CreatePayment) (st
 	newOrder := &orderpb.Order{
 		ID:          cmd.Order.ID,
 		CustomerID:  cmd.Order.CustomerID,
-		Status:      "waiting_for_payment",
+		Status:      consts.OrderStatusWaitingForPayment,
 		Items:       cmd.Order.Items,
 		PaymentLink: link,
 	}

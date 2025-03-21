@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/consts"
 	"github.com/liuzhaoze/MyGo-project/common/logging"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
@@ -91,7 +92,7 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 	if err = c.orderGRPC.UpdateOrder(ctx, &orderpb.Order{
 		ID:          o.ID,
 		CustomerID:  o.CustomerID,
-		Status:      "ready",
+		Status:      consts.OrderStatusReady,
 		Items:       o.Items,
 		PaymentLink: o.PaymentLink,
 	}); err != nil {

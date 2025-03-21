@@ -3,9 +3,9 @@ package order
 import (
 	"errors"
 	"fmt"
+	"github.com/liuzhaoze/MyGo-project/common/consts"
 	"github.com/liuzhaoze/MyGo-project/order/entity"
-
-	"github.com/stripe/stripe-go/v81"
+	"slices"
 )
 
 // Order
@@ -38,7 +38,7 @@ func NewOrder(id, customerID, status, paymentLink string, items []*entity.Item) 
 	return &Order{
 		ID:          id,
 		CustomerID:  customerID,
-		Status:      status,
+		Status:      consts.OrderStatusPending,
 		PaymentLink: paymentLink,
 		Items:       items,
 	}, nil
@@ -60,9 +60,33 @@ func NewPendingOrder(customerID string, items []*entity.Item) (*Order, error) {
 	}, nil
 }
 
-func (o *Order) IsPaid() error {
-	if o.Status == string(stripe.CheckoutSessionPaymentStatusPaid) {
-		return nil
+func (o *Order) UpdateStatusTo(targetStatus string) error {
+	if !o.isValidStatusTransition(targetStatus) {
+		return fmt.Errorf("cannot update status from %s to %s", o.Status, targetStatus)
 	}
-	return fmt.Errorf("order is not paid, order id=%s, status=%s", o.ID, o.Status)
+	o.Status = targetStatus
+	return nil
+}
+
+func (o *Order) isValidStatusTransition(status string) bool {
+	switch o.Status {
+	default:
+		return false
+	case consts.OrderStatusPending:
+		return slices.Contains([]string{consts.OrderStatusWaitingForPayment}, status)
+	case consts.OrderStatusWaitingForPayment:
+		return slices.Contains([]string{consts.OrderStatusPaid}, status)
+	case consts.OrderStatusPaid:
+		return slices.Contains([]string{consts.OrderStatusReady}, status)
+	}
+}
+
+func (o *Order) UpdatePaymentLink(link string) error {
+	o.PaymentLink = link
+	return nil
+}
+
+func (o *Order) UpdateItems(items []*entity.Item) error {
+	o.Items = items
+	return nil
 }
