@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -29,7 +30,22 @@ func (t traceHook) Fire(entry *logrus.Entry) error {
 func Init() {
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetLevel(logrus.DebugLevel)
+	setOutput(logrus.StandardLogger())
 	logrus.AddHook(&traceHook{})
+}
+
+func setOutput(logger *logrus.Logger) {
+	logDir := "./logs"
+	logFile := "app.log"
+	if err := os.MkdirAll(logDir, 0750); err != nil && !os.IsExist(err) {
+		panic(err)
+	}
+	logFilePath := filepath.Join(logDir, logFile)
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_RDWR, 0755)
+	if err != nil {
+		panic(err)
+	}
+	logger.SetOutput(file)
 }
 
 func SetFormatter(logger *logrus.Logger) {
