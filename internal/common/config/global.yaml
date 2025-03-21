@@ -5,18 +5,21 @@ order:
   service-protocol: http
   http-addr: 127.0.0.1:8282
   grpc-addr: 127.0.0.1:8182
+  metrics-export-addr: 127.0.0.1:9111
 
 stock:
   service-name: stock
   service-protocol: grpc
   http-addr: 127.0.0.1:8283
   grpc-addr: 127.0.0.1:8183
+  metrics-export-addr: 127.0.0.1:9112
 
 payment:
   service-name: payment
   service-protocol: http
   http-addr: 127.0.0.1:8284
   grpc-addr: 127.0.0.1:8184
+  metrics-export-addr: 127.0.0.1:9113
 
 process:
   service-name: process

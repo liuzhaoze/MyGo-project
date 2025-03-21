@@ -6,4 +6,4 @@ scrape_configs:
   - job_name: server-metrics
     scrape_interval: 5s
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['host.docker.internal:9111', 'host.docker.internal:9112', 'host.docker.internal:9113']
