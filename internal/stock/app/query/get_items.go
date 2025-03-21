@@ -19,7 +19,7 @@ type getItemsHandler struct {
 	stockRepo domain.Repository
 }
 
-func NewGetItemsHandler(stockRepo domain.Repository, logger *logrus.Entry, metricClient decorator.MetricsClient) GetItemsHandler {
+func NewGetItemsHandler(stockRepo domain.Repository, logger *logrus.Logger, metricClient decorator.MetricsClient) GetItemsHandler {
 	if stockRepo == nil {
 		panic("stockRepo is nil")
 	}

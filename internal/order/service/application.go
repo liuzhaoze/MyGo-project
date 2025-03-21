@@ -45,15 +45,14 @@ func newApplication(_ context.Context, stockGRPC query.StockService, ch *amqp.Ch
 	//orderRepo := adapters.NewMemoryOrderRepository()
 	mongoClient := newMongoClient()
 	orderRepo := adapters.NewOrderRepositoryMongo(mongoClient)
-	logger := logrus.NewEntry(logrus.StandardLogger())
 	metricsClient := metrics.TodoMetrics{}
 	return app.Application{
 		Commands: app.Commands{
-			CreateOrder: command.NewCreateOrderHandler(orderRepo, stockGRPC, ch, logger, metricsClient),
-			UpdateOrder: command.NewUpdateOrderHandler(orderRepo, logger, metricsClient),
+			CreateOrder: command.NewCreateOrderHandler(orderRepo, stockGRPC, ch, logrus.StandardLogger(), metricsClient),
+			UpdateOrder: command.NewUpdateOrderHandler(orderRepo, logrus.StandardLogger(), metricsClient),
 		},
 		Queries: app.Queries{
-			GetCustomerOrder: query.NewGetCustomerOrderHandler(orderRepo, logger, metricsClient),
+			GetCustomerOrder: query.NewGetCustomerOrderHandler(orderRepo, logrus.StandardLogger(), metricsClient),
 		},
 	}
 

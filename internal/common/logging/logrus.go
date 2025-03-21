@@ -2,14 +2,15 @@ package logging
 
 import (
 	"context"
+	"github.com/lestrrat-go/file-rotatelogs"
 	"github.com/liuzhaoze/MyGo-project/common/tracing"
+	"github.com/rifflock/lfshook"
+	"github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
-
-	"github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 type traceHook struct {
@@ -35,17 +36,49 @@ func Init() {
 }
 
 func setOutput(logger *logrus.Logger) {
-	logDir := "./logs"
-	logFile := "app.log"
+	var (
+		logDir       = "./logs"
+		infoLogFile  = "info.log"
+		errorLogFile = "error.log"
+	)
+
 	if err := os.MkdirAll(logDir, 0750); err != nil && !os.IsExist(err) {
 		panic(err)
 	}
-	logFilePath := filepath.Join(logDir, logFile)
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_RDWR, 0755)
+
+	infoLogFilePath := filepath.Join(logDir, infoLogFile)
+	rotateInfo, err := rotatelogs.New(
+		infoLogFilePath+".%Y%m%d%H",
+		rotatelogs.WithLinkName(infoLogFile),
+		rotatelogs.WithMaxAge(7*24*time.Hour),
+		rotatelogs.WithRotationTime(1*time.Hour),
+	)
 	if err != nil {
 		panic(err)
 	}
-	logger.SetOutput(file)
+
+	errorLogFilePath := filepath.Join(logDir, errorLogFile)
+	rotateError, err := rotatelogs.New(
+		errorLogFilePath+".%Y%m%d%H",
+		rotatelogs.WithLinkName(errorLogFile),
+		rotatelogs.WithMaxAge(7*24*time.Hour),
+		rotatelogs.WithRotationTime(1*time.Hour),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	rotationMap := lfshook.WriterMap{
+		logrus.DebugLevel: rotateInfo,
+		logrus.InfoLevel:  rotateInfo,
+		logrus.WarnLevel:  rotateError,
+		logrus.ErrorLevel: rotateError,
+		logrus.FatalLevel: rotateError,
+		logrus.PanicLevel: rotateError,
+	}
+	logrus.AddHook(lfshook.NewHook(rotationMap, &logrus.JSONFormatter{
+		TimestampFormat: time.DateTime,
+	}))
 }
 
 func SetFormatter(logger *logrus.Logger) {
